@@ -59,3 +59,26 @@ MIT
 Notes:
 - The backend will bind to `http://0.0.0.0:8000` and exposes a health route at `/api/health`.
 - The frontend uses Vite; the dev server default port is `5173`. If your browser opens a different port, check the terminal output from `npm run dev`.
+
+### Database setup
+
+Install PostgreSQL locally and point the backend to it.
+
+Steps:
+
+1) Create `backend/.env` from the example (interactive):
+
+```powershell
+.\scripts\create-backend-env.ps1
+```
+
+Set `DATABASE_URL` in the generated `backend/.env` (default example: `postgresql://user:password@localhost:5432/knowledge_base`).
+
+2) Run Alembic migrations to create schema:
+
+```powershell
+.\scripts\run-migrations.ps1
+```
+
+If migrations fail, check `backend/.env` and that your Postgres server is accepting connections.
+
