@@ -1,0 +1,8 @@
+Dependencies
+- fastapi
+- uvicorn[standard]
+- python-multipart
+- python-jose[cryptography]
+- passlib[bcrypt]
+- sqlalchemy
+- psycopg2-binary
