@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database.core import get_db
-from database.notes import create_note, get_note, get_user_notes, get_pinned_notes, update_note, delete_note
+from database.notes import create_note, get_note, get_user_notes, get_pinned_notes, update_note, delete_note, get_note_versions
 from database.user import get_user
 from routers.auth import oauth2_scheme
-from schemas import NoteCreate, NoteUpdate, Note, Notes
+from schemas import NoteCreate, NoteUpdate, Note, Notes, NoteVersion
 from jose import jwt, JWTError
 import os
 
@@ -81,3 +81,15 @@ async def delete_existing_note(note_id: int, db: Session = Depends(get_db), curr
     if not db_note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     return {"message": "Note deleted successfully"}
+
+
+@router.get("/{note_id}/versions")
+async def get_note_version_history(note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Get version history for a note"""
+    # Verify note exists and belongs to user
+    db_note = get_note(db, note_id, current_user.id)
+    if not db_note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+    
+    versions = get_note_versions(db, note_id, current_user.id)
+    return {"note_id": note_id, "versions": versions}
