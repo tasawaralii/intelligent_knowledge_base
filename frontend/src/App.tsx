@@ -3,17 +3,22 @@ import './App.css'
 import SigninPage from './pages/SigninPage'
 import SignupPage from './pages/SignupPage'
 import NotFound from './pages/NotFound'
+import HomePage from './pages/HomePage'
+import { AuthProvider } from './context/authContext'
 
 function App() {
 
   return (
-    <Router>
-      <Routes>
-        <Route path='/signin' element={<SigninPage />} />
-        <Route path='/signup' element={<SignupPage />} />
-        <Route path='*' element={<NotFound />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path='/' element={<HomePage />} />
+          <Route path='/signin' element={<SigninPage />} />
+          <Route path='/signup' element={<SignupPage />} />
+          <Route path='*' element={<NotFound />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 
