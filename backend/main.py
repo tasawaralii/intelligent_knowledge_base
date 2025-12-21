@@ -7,10 +7,12 @@ import database.models as models
 from database.core import engine
 from routers.auth import router as auth_router
 from routers.me import router as me_router
+from routers.notes import router as notes_router
 
 app = FastAPI()
 
 app.include_router(auth_router)
 app.include_router(me_router)
+app.include_router(notes_router)
 
 models.Base.metadata.create_all(bind=engine)

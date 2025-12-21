@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from urllib.parse import quote_plus
 
-password = quote_plus("6@7A8a9a")
+password = quote_plus("2024131")
 
 DATABASE_URL = f"postgresql://postgres:{password}@localhost:5432/fastapi_orm"
 engine = create_engine(DATABASE_URL)
