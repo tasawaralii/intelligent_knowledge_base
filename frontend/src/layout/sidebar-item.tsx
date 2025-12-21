@@ -22,14 +22,14 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
             className={cn(
                 'group flex items-center rounded px-4 py-2 text-sm transition',
                 active
-                    ? 'bg-indigo-50 text-gray-600'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-indigo-600',
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-gray-600 dark:text-gray-300'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400',
             )}
         >
             <Icon
                 className={cn(
                     'size-4 flex-shrink-0 transition-colors',
-                    active ? 'text-gray-800' : 'text-gray-400 group-hover:text-indigo-600',
+                    active ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
                 )}
             />
             <span

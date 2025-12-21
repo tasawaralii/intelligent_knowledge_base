@@ -1,5 +1,5 @@
 'use client'
-import { ChevronLeft, Home, LayoutDashboard, LogOut, Settings, Users } from 'lucide-react'
+import { ChevronLeft, Home, LayoutDashboard, LogOut, Settings, Users, GlassWaterIcon, Trash, Archive, MapPin, Calendar1 } from 'lucide-react'
 import React, { useState } from 'react'
 import { cn } from "../utils/cn"
 import SidebarItem from "./sidebar-item"
@@ -12,7 +12,7 @@ interface SidebarProps {
 
 const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const {profile} = useAuth()
+  const { profile } = useAuth()
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => !prev)
@@ -21,7 +21,12 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
   const menuItems = [
     { icon: Home, label: 'Home', active: false, slug: '/' },
     { icon: LayoutDashboard, label: 'Dashboard', active: true, slug: '/dashboard' },
-    { icon: Users, label: 'Users', active: false, slug: '/user' },
+    { icon: GlassWaterIcon, label: 'Notes', active: false, slug: '/notes' },
+    { icon: Users, label: 'People', active: false, slug: '/persons' },
+    { icon: MapPin, label: 'Places', active: false, slug: '/places' },
+    { icon: Calendar1, label: 'Events', active: false, slug: '/events' },
+    { icon: Archive, label: 'Archive', active: false, slug: '/archive' },
+    { icon: Trash, label: 'Bin', active: false, slug: '/bin' },
   ]
 
   const userActions = [
@@ -32,13 +37,13 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
   return (
     <aside
       className={cn(
-        'flex h-screen flex-col border-r border-r-[#EBEDEE] bg-[#F5F7F9]',
+        'flex h-screen flex-col border-r border-r-gray-200 dark:border-r-gray-700 bg-gray-50 dark:bg-gray-800',
         isCollapsed ? 'w-20' : 'w-60',
         className,
       )}
     >
       {/* Header */}
-      <div className="relative border-b border-b-[#EBEDEE] px-4 py-3">
+      <div className="relative border-b border-b-gray-200 dark:border-b-gray-700 px-4 py-3">
         <div className="flex items-center space-x-3">
           <img
             src="https://plus.unsplash.com/premium_photo-1661962960694-0b4ed303744f?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -47,7 +52,7 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
           />
           <span
             className={cn(
-              'text-lg font-bold text-gray-800 transition-opacity duration-200',
+              'text-lg font-bold text-gray-800 dark:text-gray-200 transition-opacity duration-200',
               isCollapsed && 'hidden opacity-0',
             )}
           >
@@ -57,7 +62,7 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
         <button
           onClick={toggleSidebar}
           aria-label="Toggle Sidebar"
-          className="absolute top-4 -right-3 cursor-pointer rounded-full border border-[#EBEDEE] bg-white p-1 text-gray-600 hover:bg-[#EBEDEE]"
+          className="absolute top-4 -right-3 cursor-pointer rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <ChevronLeft
             className={cn('h-4 w-4 transition-transform duration-200', isCollapsed && 'rotate-180')}
@@ -77,9 +82,9 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
       </nav>
 
       {/* Footer/User Section */}
-      <div className="mt-auto border-t border-t-[#EBEDEE]">
+      <div className="mt-auto border-t border-t-gray-200 dark:border-t-gray-700">
         {/* User Profile */}
-        <div className="flex cursor-pointer items-center px-4 py-3 transition hover:bg-gray-100">
+        <div className="flex cursor-pointer items-center px-4 py-3 transition hover:bg-gray-100 dark:hover:bg-gray-700">
           <ProfileAvatar name={profile?.username} />
 
           <div
@@ -88,8 +93,8 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
               isCollapsed && 'hidden opacity-0',
             )}
           >
-            <span className="text-sm font-medium text-gray-700">{profile?.first_name} {profile?.last_name}</span>
-            <span className="text-xs text-gray-500">{profile?.email}</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{profile?.first_name} {profile?.last_name}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{profile?.email}</span>
           </div>
         </div>
 
@@ -101,10 +106,10 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-t-[#EBEDEE] px-4 py-3">
+        <div className="border-t border-t-gray-200 dark:border-t-gray-700 px-4 py-3">
           <span
             className={cn(
-              'text-xs text-gray-400 transition-opacity duration-200',
+              'text-xs text-gray-400 dark:text-gray-500 transition-opacity duration-200',
               isCollapsed && 'hidden opacity-0',
             )}
           >

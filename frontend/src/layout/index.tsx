@@ -19,14 +19,14 @@ export default function Layout() {
 
     if (isLoading) {
         return (
-            <div className="flex h-screen items-center justify-center">
-                <div className="text-lg">Loading...</div>
+            <div className="flex h-screen items-center justify-center bg-white dark:bg-gray-900">
+                <div className="text-lg text-gray-900 dark:text-white">Loading...</div>
             </div>
         )
     }
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
             {/* Sidebar */}
             <Sidebar />
             
@@ -36,7 +36,7 @@ export default function Layout() {
                 <Header />
                 
                 {/* Main Content */}
-                <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+                <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
                     <Outlet />
                 </main>
                 

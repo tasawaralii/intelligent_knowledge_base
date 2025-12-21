@@ -3,10 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { signinApi } from "../api/auth";
 import type { SigninRequest } from "../models/request";
 import type { SigninResponse } from "../models/response";
+import { useAuth } from "../context/authContext";
 
 export default function SigninPage() {
 
   const navigate = useNavigate()
+  const { refetchProfile } = useAuth()
 
   useEffect(() => {
     const access_token = localStorage.getItem("access_token");
@@ -22,12 +24,13 @@ export default function SigninPage() {
     try {
       const response : SigninResponse = await signinApi(credentials)
       localStorage.setItem("access_token", response.access_token);
+      await refetchProfile();
       navigate("/")
     } catch (error) { }
   };
 
   return (
-    <div className="flex bg-gray-800 min-h-screen items-center justify-center px-6">
+    <div className="flex bg-gray-200 min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">

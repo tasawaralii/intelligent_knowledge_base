@@ -6,7 +6,8 @@ interface AuthContextType {
     isLoggedIn: boolean;
     setIsLoggedIn: (value: boolean) => void;
     isLoading: boolean;
-    profile : AboutMeResponse | undefined
+    profile : AboutMeResponse | undefined;
+    refetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,7 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, isLoading, profile }}>
+        <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, isLoading, profile, refetchProfile: fetchProfile }}>
             {children}
         </AuthContext.Provider>
     );

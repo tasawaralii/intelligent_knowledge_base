@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import { AuthProvider } from './context/authContext'
 import Layout from './layout'
 import LogoutPage from './pages/LogoutPage'
+import ComingSoonPage from './pages/ComingSoonPage'
 
 function App() {
 
@@ -20,6 +21,13 @@ function App() {
           <Route element={<Layout />} >
             <Route path='/' element={<HomePage />} />
             <Route path='/dashboard' element={<DashboardPage />} />
+            <Route path='/notes' element={<ComingSoonPage />} />
+            <Route path='/places' element={<ComingSoonPage />} />
+            <Route path='/persons' element={<ComingSoonPage />} />
+            <Route path='/events' element={<ComingSoonPage />} />
+            <Route path='/archive' element={<ComingSoonPage />} />
+            <Route path='/bin' element={<ComingSoonPage />} />
+            <Route path='/settings' element={<ComingSoonPage />} />
             <Route path='/logout' element={<LogoutPage />} />
           </Route>
           <Route path='*' element={<NotFound />} />

@@ -34,7 +34,7 @@ const SignupPage = () => {
     }
 
     return (
-        <div className="flex bg-gray-800 min-h-screen items-center justify-center px-6">
+        <div className="flex bg-gray-200 min-h-screen items-center justify-center px-6">
             <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-8">
                 <div className="sm:mx-auto sm:w-full sm:max-w-sm">
                     <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900 dark:text-white">

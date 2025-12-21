@@ -9,7 +9,7 @@ const Footer = () => {
           <a href="#" className="hover:text-indigo-600">Contact</a>
         </div>
       </div>
-    </footer>
+    </footer> 
   )
 }
 
