@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signinApi } from "../api/auth";
 import type { SigninRequest } from "../models/request";
@@ -8,13 +8,20 @@ export default function SigninPage() {
 
   const navigate = useNavigate()
 
+  useEffect(() => {
+    const access_token = localStorage.getItem("access_token");
+    if (access_token) {
+      navigate("/")
+    }
+  },[])
+
   const [credentials, setCredentials] = useState<SigninRequest>({username:"",password:""})
 
   const submit = async (e:FormEvent) => {
     e.preventDefault();
     try {
       const response : SigninResponse = await signinApi(credentials)
-      console.log(response)
+      localStorage.setItem("access_token", response.access_token);
       navigate("/")
     } catch (error) { }
   };

@@ -14,6 +14,5 @@ export const signinApi = async (credentials : SigninRequest) : Promise<SigninRes
     formData.append("password", credentials.password)
 
     const response = await api.post("/auth/signin", formData)
-    console.log(response)
     return response.data
 }

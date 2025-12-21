@@ -6,6 +6,6 @@ export type SignupResponse = {
 }
 
 export type SigninResponse = {
-    accesstoken : string
+    access_token : string
     token_type: string
 }
