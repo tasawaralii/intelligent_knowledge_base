@@ -4,12 +4,13 @@ import Sidebar from "./Sidebar";
 
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Layout() {
-
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const navigate = useNavigate()
     const { isLoggedIn, isLoading } = useAuth()
+    
     useEffect(() => {
         if (!isLoading && !isLoggedIn) {
             navigate("/signin")
@@ -17,21 +18,31 @@ export default function Layout() {
     }, [isLoggedIn, isLoading, navigate])
 
     if (isLoading) {
-        return <div>Loading...</div>
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-lg">Loading...</div>
+            </div>
+        )
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <Header/>
+        <div className="flex h-screen overflow-hidden">
+            {/* Sidebar */}
             <Sidebar />
-
-            <main className="grow sm:ml-64 mt-14 bg-gray-50">
-                <Outlet />
-            </main>
-
-            <footer className="sm:ml-64">
+            
+            {/* Main Content Area */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+                {/* Header */}
+                <Header />
+                
+                {/* Main Content */}
+                <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+                    <Outlet />
+                </main>
+                
+                {/* Footer */}
                 <Footer />
-            </footer>
+            </div>
         </div>
     );
 }
