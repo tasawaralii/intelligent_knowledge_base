@@ -4,6 +4,7 @@ from database.core import get_db
 from database.relationships import (
     extract_entities_from_note, 
     create_entity, 
+    create_entity_relationship,
     find_connection_path,
     get_related_notes_clusters,
     search_entities_by_type,
@@ -12,7 +13,8 @@ from database.relationships import (
 )
 from database.user import get_user
 from routers.auth import oauth2_scheme
-from schemas import Entity, EntityCreate, ConnectionPath, RelatedNotesCluster
+from schemas import Entity, EntityCreate, EntityRelationship, EntityRelationshipCreate, ConnectionPath, RelatedNotesCluster
+import database.models as models
 from jose import jwt, JWTError
 import os
 
@@ -53,11 +55,14 @@ async def extract_note_entities(note_id: int, db: Session = Depends(get_db), cur
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     
-    # Extract entities from database note (need to query directly for content)
-    db_note = db.query(__import__('database.models', fromlist=['Notes']).Notes).filter(
-        __import__('database.models', fromlist=['Notes']).Notes.id == note_id,
-        __import__('database.models', fromlist=['Notes']).Notes.owner_id == current_user.id
+    # Query directly for full note content
+    db_note = db.query(models.Notes).filter(
+        models.Notes.id == note_id,
+        models.Notes.owner_id == current_user.id
     ).first()
+    
+    if not db_note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     
     extracted = extract_entities_from_note(db, note_id, current_user.id, db_note.content or "", db_note.title or "")
     
@@ -72,6 +77,28 @@ async def create_new_entity(entity: EntityCreate, db: Session = Depends(get_db),
     """Create a new entity"""
     db_entity = create_entity(db, entity, current_user.id)
     return db_entity
+
+
+@router.post("/relationships", response_model=EntityRelationship)
+async def create_new_relationship(relationship: EntityRelationshipCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Create a relationship between two entities"""
+    # Verify both entities exist and belong to user
+    
+    from_entity = db.query(models.Entity).filter(
+        models.Entity.id == relationship.from_entity_id,
+        models.Entity.owner_id == current_user.id
+    ).first()
+    
+    to_entity = db.query(models.Entity).filter(
+        models.Entity.id == relationship.to_entity_id,
+        models.Entity.owner_id == current_user.id
+    ).first()
+    
+    if not from_entity or not to_entity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or both entities not found")
+    
+    db_relationship = create_entity_relationship(db, relationship, current_user.id)
+    return db_relationship
 
 
 @router.get("/entities/by-type/{entity_type}")

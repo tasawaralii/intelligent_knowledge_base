@@ -127,40 +127,54 @@ def create_entity_relationship(db: Session, relationship: EntityRelationshipCrea
 
 def auto_create_relationships(db: Session, note_id: int, owner_id: int):
     """Automatically create relationships between entities that appear together in notes"""
-    note = db.query(models.Notes).filter(
-        models.Notes.id == note_id,
-        models.Notes.owner_id == owner_id
-    ).first()
-    
-    if not note or not note.entities:
-        return
-    
-    # Create relationships between all entity pairs in the note
-    entities = note.entities
-    for i, entity1 in enumerate(entities):
-        for entity2 in entities[i+1:]:
-            # Check if relationship already exists
-            existing = db.query(models.EntityRelationship).filter(
-                models.EntityRelationship.from_entity_id == entity1.id,
-                models.EntityRelationship.to_entity_id == entity2.id,
-                models.EntityRelationship.owner_id == owner_id
-            ).first()
-            
-            if existing:
-                # Increase strength if already exists
-                existing.strength += 1
-            else:
-                # Create new relationship
-                relationship = models.EntityRelationship(
-                    from_entity_id=entity1.id,
-                    to_entity_id=entity2.id,
-                    relationship_type='mentioned_with',
-                    strength=1,
-                    owner_id=owner_id
-                )
-                db.add(relationship)
-    
-    db.commit()
+    try:
+        note = db.query(models.Notes).filter(
+            models.Notes.id == note_id,
+            models.Notes.owner_id == owner_id
+        ).first()
+        
+        if not note or not note.entities:
+            return
+        
+        # Create bidirectional relationships between all entity pairs in the note
+        entities = note.entities
+        for i, entity1 in enumerate(entities):
+            for entity2 in entities[i+1:]:
+                # Check if relationship already exists in either direction
+                existing_forward = db.query(models.EntityRelationship).filter(
+                    models.EntityRelationship.from_entity_id == entity1.id,
+                    models.EntityRelationship.to_entity_id == entity2.id,
+                    models.EntityRelationship.owner_id == owner_id
+                ).first()
+                
+                existing_backward = db.query(models.EntityRelationship).filter(
+                    models.EntityRelationship.from_entity_id == entity2.id,
+                    models.EntityRelationship.to_entity_id == entity1.id,
+                    models.EntityRelationship.owner_id == owner_id
+                ).first()
+                
+                if existing_forward:
+                    # Increase strength if already exists
+                    existing_forward.strength += 1
+                else:
+                    # Create new relationship
+                    relationship = models.EntityRelationship(
+                        from_entity_id=entity1.id,
+                        to_entity_id=entity2.id,
+                        relationship_type='mentioned_with',
+                        strength=1,
+                        owner_id=owner_id
+                    )
+                    db.add(relationship)
+                
+                if existing_backward:
+                    # Increase strength in reverse direction
+                    existing_backward.strength += 1
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def find_connection_path(db: Session, from_entity_id: int, to_entity_id: int, owner_id: int, max_depth: int = 3) -> Optional[ConnectionPath]:
