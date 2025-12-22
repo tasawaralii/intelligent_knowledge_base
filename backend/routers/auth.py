@@ -13,7 +13,7 @@ router = APIRouter(prefix="/auth")
 
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
 ALGORITHM = str(os.getenv("ALGORITHM"))
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1 * 24 * 60
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
 
 def get_password_hash(plain_password):
@@ -59,5 +59,5 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     response = {"access_token" : access_token, "token_type": "bearer"}
     print(response)
     return response
-     
+    
      
