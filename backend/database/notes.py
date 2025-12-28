@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
 import database.models as models
-from schemas import NoteCreate, Note
+from schemas import NoteCreate, Note, Mention, AllMentions
 import json
 import re
 
@@ -14,16 +14,47 @@ def extract_mentions(content: str) -> list[str]:
     mentions = re.findall(r'@\w+', content)
     return list(set(mentions))  # Remove duplicates
 
+def _extract_places(content : str) -> List[Mention] :
+    if not content:
+        return []
+    
+    places = re.findall(r'(@(n.)?pl.\w+)',content)
+    places = set(places)
+    
+    return [Mention(slug=place[0],type='place') for place in places]
+
+def _extract_persons(content : str) -> List[Mention] :
+    if not content:
+        return []
+    
+    persons = re.findall(r'(@(n.)?p.\w+)',content)
+    persons = set(persons)
+    
+    return [Mention(slug=person[0],type='person',new=(not person[1] == "")) for person in persons]
+
+def _extract_events(content : str) -> List[Mention] :
+    if not content:
+        return []
+    
+    events = re.findall(r'(@(n.)?e.\w+)',content)
+    events = set(events)
+    
+    return [Mention(slug=event[0],type='event') for event in events]
 
 def parse_note(db_note) -> Note | None:
     """Convert database note to schema with parsed tags and mentions"""
     if not db_note:
         return None
     
+    persons : List[Mention] = _extract_persons(db_note.content)
+    placess : List[Mention] = _extract_places(db_note.content)
+    events : List[Mention] = _extract_events(db_note.content)
+    
     return Note(
         id=db_note.id,
         title=db_note.title,
         content=db_note.content,
+        mentions=AllMentions(places=placess,persons=persons,events=events),
         is_pinned=db_note.is_pinned,
         created_at=db_note.created_at,
         updated_at=db_note.updated_at

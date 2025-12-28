@@ -1,74 +1,86 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 from database.core import get_db
-from database.notes import create_note, get_note, get_user_notes, get_pinned_notes, delete_note
-from database.user import get_user
-from routers.auth import oauth2_scheme
-from schemas import NoteCreate, Note, Notes
-from jose import jwt, JWTError
-import os
+from dependencies import get_current_user
+from database.models import Users, Notes
+from schemas import Note, NoteCreate
+from services import note_service
 
-router = APIRouter(prefix="/notes", tags=["notes"])
+router = APIRouter(prefix="/note", tags=["Note"])
 
-SECRET_KEY = str(os.getenv("SECRET_KEY"))
-ALGORITHM = str(os.getenv("ALGORITHM"))
-
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Get current user from JWT token"""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+@router.post("/", response_model=Note, status_code=status.HTTP_201_CREATED)
+def create_note(
+    note: NoteCreate,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """
+    Create a new note with automatic entity linking
     
-    user = get_user(username, db)
-    if user is None:
-        raise credentials_exception
-    return user
+    Example content:
+    ```
+    Met with @p.john_doe at @pl.office.
+    Discussed @e.product_launch plans.
+    New contact: @n.p.sarah_smith
+    ```
+    """
+    return note_service.create_note(db, note, current_user.id)
 
 
-@router.get("/", response_model=Notes)
-async def list_notes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Get all notes for the current user"""
-    notes = get_user_notes(db, current_user.id, skip, limit)
-    return Notes(notes=notes)
-
-
-@router.get("/pinned")
-async def list_pinned_notes(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Get all pinned notes for the current user"""
-    notes = get_pinned_notes(db, current_user.id)
-    return Notes(notes=notes)
-
-
-@router.post("", response_model=Note)
-async def create_new_note(note: NoteCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Create a new note"""
-    db_note = create_note(db, note, current_user.id)
-    return db_note
+@router.get("/", response_model=List[Note])
+def get_notes(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Get all notes for current user"""
+    return note_service.get_notes(db, current_user.id, skip, limit)
 
 
 @router.get("/{note_id}", response_model=Note)
-async def read_note(note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Get a specific note by ID"""
-    db_note = get_note(db, note_id, current_user.id)
-    if not db_note:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
-    return db_note
+def get_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Get a specific note with all linked entities"""
+    note = note_service.get_note(db, note_id, current_user.id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return note
 
 
-@router.delete("/{note_id}")
-async def delete_existing_note(note_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Delete a note"""
-    db_note = delete_note(db, note_id, current_user.id)
-    if not db_note:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
-    return {"message": "Note deleted successfully"}
+@router.put("/{note_id}", response_model=Note)
+def update_note(
+    note_id: int,
+    note: NoteCreate,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Update note and automatically re-link entities"""
+    updated_note = note_service.update_note(db, note_id, note, current_user.id)
+    if not updated_note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return updated_note
+
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(
+    note_id: int,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Soft delete a note"""
+    note = note_service.get_note(db, note_id, current_user.id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Soft delete
+    db_note = db.query(Notes).filter(
+        Notes.id == note_id,
+        Notes.owner_id == current_user.id
+    ).first()
+    db_note.is_deleted = True
+    db.commit()

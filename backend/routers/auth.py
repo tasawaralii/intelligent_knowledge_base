@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 import bcrypt
 import os
 from database.user import get_user, add_user, UserCreate
@@ -9,12 +9,11 @@ from jose import jwt
 from sqlalchemy.orm import Session
 from schemas import User, Token
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 SECRET_KEY = str(os.getenv("SECRET_KEY"))
 ALGORITHM = str(os.getenv("ALGORITHM"))
 ACCESS_TOKEN_EXPIRE_MINUTES = 1 * 24 * 60
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
 
 def get_password_hash(plain_password):
     salt = bcrypt.gensalt(rounds=12)

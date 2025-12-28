@@ -16,7 +16,7 @@ def get_user(username, db: Session) :
     return result
 
 def add_user(user : UserCreate, hashed_password, db: Session) -> UserCreate:
-    db_user = models.Users(username=user.username,email=user.email,first_name=user.first_name,last_name=user.last_name,disabled=True, password_hashed=hashed_password)
+    db_user = models.Users(username=user.username,email=user.email,first_name=user.first_name,last_name=user.last_name, password_hashed=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

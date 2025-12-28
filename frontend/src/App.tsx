@@ -9,6 +9,14 @@ import { AuthProvider } from './context/authContext'
 import Layout from './layout'
 import LogoutPage from './pages/LogoutPage'
 import ComingSoonPage from './pages/ComingSoonPage'
+import NotesPage from './pages/NotesPage'
+import PersonsPage from './pages/PersonsPage'
+import PlacesPage from './pages/PlacesPage'
+import EventsPage from './pages/EventsPage'
+import RelationsPage from './pages/RelationsPage'
+import ArchivePage from './pages/ArchivePage'
+import BinPage from './pages/BinPage'
+import FactsPage from './pages/FactsPage'
 
 function App() {
 
@@ -21,12 +29,14 @@ function App() {
           <Route element={<Layout />} >
             <Route path='/' element={<HomePage />} />
             <Route path='/dashboard' element={<DashboardPage />} />
-            <Route path='/notes' element={<ComingSoonPage />} />
-            <Route path='/places' element={<ComingSoonPage />} />
-            <Route path='/persons' element={<ComingSoonPage />} />
-            <Route path='/events' element={<ComingSoonPage />} />
-            <Route path='/archive' element={<ComingSoonPage />} />
-            <Route path='/bin' element={<ComingSoonPage />} />
+            <Route path='/notes' element={<NotesPage />} />
+            <Route path='/places' element={<PlacesPage />} />
+            <Route path='/persons' element={<PersonsPage />} />
+            <Route path='/events' element={<EventsPage />} />
+            <Route path='/relations' element={<RelationsPage />} />
+            <Route path='/facts' element={<FactsPage />} />
+            <Route path='/archive' element={<ArchivePage />} />
+            <Route path='/bin' element={<BinPage />} />
             <Route path='/settings' element={<ComingSoonPage />} />
             <Route path='/logout' element={<LogoutPage />} />
           </Route>

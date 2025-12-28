@@ -1,5 +1,5 @@
 'use client'
-import { ChevronLeft, Home, LayoutDashboard, LogOut, Settings, Users, GlassWaterIcon, Trash, Archive, MapPin, Calendar1 } from 'lucide-react'
+import { ChevronLeft, Home, LayoutDashboard, LogOut, Settings, Users, Lightbulb, Trash, Archive, MapPin, Calendar1, Link2 } from 'lucide-react'
 import React, { useState } from 'react'
 import { cn } from "../utils/cn"
 import SidebarItem from "./sidebar-item"
@@ -19,19 +19,21 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
   }
 
   const menuItems = [
-    { icon: Home, label: 'Home', active: false, slug: '/' },
-    { icon: LayoutDashboard, label: 'Dashboard', active: true, slug: '/dashboard' },
-    { icon: GlassWaterIcon, label: 'Notes', active: false, slug: '/notes' },
-    { icon: Users, label: 'People', active: false, slug: '/persons' },
-    { icon: MapPin, label: 'Places', active: false, slug: '/places' },
-    { icon: Calendar1, label: 'Events', active: false, slug: '/events' },
-    { icon: Archive, label: 'Archive', active: false, slug: '/archive' },
-    { icon: Trash, label: 'Bin', active: false, slug: '/bin' },
+    { icon: Home, label: 'Home', slug: '/' },
+    { icon: LayoutDashboard, label: 'Dashboard', slug: '/dashboard' },
+    { icon: Lightbulb, label: 'Notes', slug: '/notes' },
+    { icon: Users, label: 'People', slug: '/persons' },
+    { icon: MapPin, label: 'Places', slug: '/places' },
+    { icon: Calendar1, label: 'Events', slug: '/events' },
+    { icon: Link2, label: 'Relations', slug: '/relations' },
+    { icon: Lightbulb, label: 'Facts', slug: '/facts' },
+    { icon: Archive, label: 'Archive', slug: '/archive' },
+    { icon: Trash, label: 'Bin', slug: '/bin' },
   ]
 
   const userActions = [
-    { icon: Settings, label: 'Settings', active: false, slug: '/settings' },
-    { icon: LogOut, label: 'Logout', active: false, slug: '/logout' },
+    { icon: Settings, label: 'Settings', slug: '/settings' },
+    { icon: LogOut, label: 'Logout', slug: '/logout' },
   ]
 
   return (
