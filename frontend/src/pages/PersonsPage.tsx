@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Edit, Mail, Phone, MapPin, User } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, Mail, Phone, MapPin, User, GitBranch } from 'lucide-react';
 import { Dialog } from '../components/ui/Dialog';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { InputField, SelectField } from '../components/FormFields';
-import { getPersons, createPerson, updatePerson, deletePerson, type Person, type PersonCreate } from '../api/persons';
+import { getPersons, createPerson, updatePerson, deletePerson, getFamilyTree, type Person, type PersonCreate, type FamilyTree } from '../api/persons';
+import { FamilyTreeViewer } from '../components/FamilyTreeViewer';
 
 export const PersonsPage = () => {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -14,6 +15,9 @@ export const PersonsPage = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFamilyTree, setShowFamilyTree] = useState(false);
+  const [familyTree, setFamilyTree] = useState<FamilyTree | null>(null);
+  const [loadingFamilyTree, setLoadingFamilyTree] = useState(false);
 
   const [formData, setFormData] = useState<PersonCreate>({
     first_name: '',
@@ -26,7 +30,10 @@ export const PersonsPage = () => {
     country: '',
     date_of_birth: '',
     gender: '',
-    cnic: ''
+    cnic: '',
+    father_id: undefined,
+    mother_id: undefined,
+    spouse_id: undefined
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -113,7 +120,10 @@ export const PersonsPage = () => {
       country: person.country || '',
       date_of_birth: person.date_of_birth || '',
       gender: person.gender || '',
-      cnic: person.cnic || ''
+      cnic: person.cnic || '',
+      father_id: person.father_id,
+      mother_id: person.mother_id,
+      spouse_id: person.spouse_id
     });
     setShowDialog(true);
   };
@@ -122,6 +132,20 @@ export const PersonsPage = () => {
     setEditingPerson(null);
     resetForm();
     setShowDialog(true);
+  };
+
+  const handleViewFamilyTree = async (personId: number) => {
+    try {
+      setLoadingFamilyTree(true);
+      const res = await getFamilyTree(personId);
+      setFamilyTree(res.data);
+      setShowFamilyTree(true);
+    } catch (error) {
+      console.error('Failed to load family tree:', error);
+      alert('Failed to load family tree. Please try again.');
+    } finally {
+      setLoadingFamilyTree(false);
+    }
   };
 
   const resetForm = () => {
@@ -136,7 +160,10 @@ export const PersonsPage = () => {
       country: '',
       date_of_birth: '',
       gender: '',
-      cnic: ''
+      cnic: '',
+      father_id: undefined,
+      mother_id: undefined,
+      spouse_id: undefined
     });
     setErrors({});
   };
@@ -154,6 +181,30 @@ export const PersonsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Family Tree View */}
+      {showFamilyTree && familyTree && (
+        <Dialog
+          isOpen={showFamilyTree}
+          onClose={() => setShowFamilyTree(false)}
+          title="Family Tree"
+          description="Interactive family tree visualization"
+          size="xl"
+        >
+          <div className="max-h-[70vh] overflow-y-auto">
+            <FamilyTreeViewer 
+              familyTree={familyTree}
+              onPersonClick={(id) => {
+                const person = persons.find(p => p.id === id);
+                if (person) {
+                  setShowFamilyTree(false);
+                  handleEdit(person);
+                }
+              }}
+            />
+          </div>
+        </Dialog>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -259,6 +310,16 @@ export const PersonsPage = () => {
                 </CardContent>
 
                 <div className="px-6 py-4 border-t border-gray-200 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleViewFamilyTree(person.id)}
+                    className="flex-1"
+                    disabled={loadingFamilyTree}
+                  >
+                    <GitBranch className="w-4 h-4" />
+                    Family Tree
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -383,6 +444,47 @@ export const PersonsPage = () => {
               value={formData.country || ''}
               onChange={(val) => setFormData({ ...formData, country: val })}
             />
+          </div>
+
+          {/* Family Relationships Section */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-md font-semibold text-gray-900 mb-3">Family Relationships</h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <SelectField
+                label="Father"
+                value={formData.father_id?.toString() || ''}
+                onChange={(val) => setFormData({ ...formData, father_id: val ? parseInt(val) : undefined })}
+                options={[
+                  { value: '', label: 'None' },
+                  ...persons
+                    .filter(p => p.gender === 'male' && (!editingPerson || p.id !== editingPerson.id))
+                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
+                ]}
+              />
+              <SelectField
+                label="Mother"
+                value={formData.mother_id?.toString() || ''}
+                onChange={(val) => setFormData({ ...formData, mother_id: val ? parseInt(val) : undefined })}
+                options={[
+                  { value: '', label: 'None' },
+                  ...persons
+                    .filter(p => p.gender === 'female' && (!editingPerson || p.id !== editingPerson.id))
+                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
+                ]}
+              />
+              <SelectField
+                label="Spouse"
+                value={formData.spouse_id?.toString() || ''}
+                onChange={(val) => setFormData({ ...formData, spouse_id: val ? parseInt(val) : undefined })}
+                options={[
+                  { value: '', label: 'None' },
+                  ...persons
+                    .filter(p => !editingPerson || p.id !== editingPerson.id)
+                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
+                ]}
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">

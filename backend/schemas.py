@@ -23,6 +23,9 @@ class PersonBase(BaseModel):
     date_of_birth: date | None = None
     gender: str | None = None
     picture_url: str | None = None
+    father_id: int | None = None
+    mother_id: int | None = None
+    spouse_id: int | None = None
 
 
 class PersonCreate(PersonBase):
@@ -58,6 +61,9 @@ class PersonUpdate(BaseModel):
     date_of_birth: date | None = None
     gender: str | None = None
     picture_url: str | None = None
+    father_id: int | None = None
+    mother_id: int | None = None
+    spouse_id: int | None = None
 
 
 class PersonChange(BaseModel):
@@ -199,3 +205,32 @@ class FactDetail(BaseModel):
     confidence: int
     description: str
     created_at: str  # ISO format datetime
+
+
+# Family Tree Schemas
+class FamilyMember(BaseModel):
+    """Basic family member info for tree visualization"""
+    id: int
+    first_name: str
+    last_name: str | None = None
+    gender: str | None = None
+    date_of_birth: date | None = None
+    picture_url: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FamilyTreeNode(BaseModel):
+    """Family tree node with relationships"""
+    person: FamilyMember
+    father: FamilyMember | None = None
+    mother: FamilyMember | None = None
+    spouse: FamilyMember | None = None
+    children: List[FamilyMember] = []
+    siblings: List[FamilyMember] = []
+
+
+class FamilyTree(BaseModel):
+    """Complete family tree structure"""
+    root_person: FamilyMember
+    nodes: List[FamilyTreeNode]
+    generations: int

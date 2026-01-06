@@ -47,3 +47,5 @@ backend/htmlcov/
 
 # Logs
 *.log
+
+report/

@@ -4,8 +4,9 @@ from typing import List
 from database.core import get_db
 from dependencies import get_current_user
 from database.models import Users, Persons
-from schemas import PersonResponse, PersonCreate, Note
+from schemas import PersonResponse, PersonCreate, Note, FamilyTree
 from services import note_service
+from database import persons as persons_db
 
 router = APIRouter(prefix="/person", tags=["Person"])
 
@@ -89,3 +90,38 @@ def update_person(
     db.commit()
     db.refresh(db_person)
     return db_person
+
+
+@router.get("/{person_id}/family-tree", response_model=FamilyTree)
+def get_person_family_tree(
+    person_id: int,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Get family tree for a person"""
+    family_tree = persons_db.get_family_tree(current_user.id, person_id, db)
+    
+    if not family_tree:
+        raise HTTPException(status_code=404, detail="Person not found")
+    
+    return family_tree
+
+
+@router.delete("/{person_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_person_endpoint(
+    person_id: int,
+    db: Session = Depends(get_db),
+    current_user: Users = Depends(get_current_user)
+):
+    """Delete a person"""
+    db_person = db.query(Persons).filter(
+        Persons.id == person_id,
+        Persons.user_id == current_user.id
+    ).first()
+    
+    if not db_person:
+        raise HTTPException(status_code=404, detail="Person not found")
+    
+    db.delete(db_person)
+    db.commit()
+    return None

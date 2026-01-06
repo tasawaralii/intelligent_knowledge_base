@@ -118,12 +118,22 @@ class Persons(Base):
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String(20), nullable=True)
 
+    # Family relationships
+    father_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
+    mother_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
+    spouse_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     owner = relationship("Users", back_populates="persons")
+    
+    # Family relationships (self-referential)
+    father = relationship("Persons", remote_side=[id], foreign_keys=[father_id], backref="children_as_father")
+    mother = relationship("Persons", remote_side=[id], foreign_keys=[mother_id], backref="children_as_mother")
+    spouse = relationship("Persons", remote_side=[id], foreign_keys=[spouse_id], post_update=True)
 
 class PersonChanges(Base):
     __tablename__ = "person_changes"
