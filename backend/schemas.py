@@ -23,9 +23,25 @@ class PersonBase(BaseModel):
     date_of_birth: date | None = None
     gender: str | None = None
     picture_url: str | None = None
-    father_id: int | None = None
-    mother_id: int | None = None
-    spouse_id: int | None = None
+
+
+class PersonRelationBase(BaseModel):
+    person_id: int
+    related_person_id: int
+    relation_type: str
+
+
+class PersonRelationCreate(PersonRelationBase):
+    """Input model for creating a person relation"""
+    pass
+
+
+class PersonRelationRead(PersonRelationBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PersonCreate(PersonBase):
@@ -61,9 +77,6 @@ class PersonUpdate(BaseModel):
     date_of_birth: date | None = None
     gender: str | None = None
     picture_url: str | None = None
-    father_id: int | None = None
-    mother_id: int | None = None
-    spouse_id: int | None = None
 
 
 class PersonChange(BaseModel):

@@ -5,7 +5,7 @@ export interface Person {
   first_name: string;
   last_name?: string;
   father_name?: string;
-  slug?: string;
+  slug: string;
   cnic?: string;
   phone_number?: string;
   email?: string;
@@ -15,9 +15,6 @@ export interface Person {
   date_of_birth?: string;
   gender?: string;
   picture_url?: string;
-  father_id?: number;
-  mother_id?: number;
-  spouse_id?: number;
   created_at: string;
   updated_at: string;
 }
@@ -36,9 +33,21 @@ export interface PersonCreate {
   date_of_birth?: string;
   gender?: string;
   picture_url?: string;
-  father_id?: number;
-  mother_id?: number;
-  spouse_id?: number;
+}
+
+export interface PersonRelation {
+  id: number;
+  person_id: number;
+  related_person_id: number;
+  relation_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PersonRelationCreate {
+  person_id: number;
+  related_person_id: number;
+  relation_type: string;
 }
 
 export const getPersons = async (skip = 0, limit = 100) => {
@@ -47,8 +56,8 @@ export const getPersons = async (skip = 0, limit = 100) => {
   });
 };
 
-export const getPerson = async (personId: number) => {
-  return api.get<Person>(`/person/${personId}`);
+export const getPerson = async (person_slug: string) => {
+  return api.get<Person>(`/person/${person_slug}`);
 };
 
 export const createPerson = async (data: PersonCreate) => {
@@ -65,6 +74,19 @@ export const deletePerson = async (personId: number) => {
 
 export const getPersonNotes = async (personId: number) => {
   return api.get(`/person/${personId}/notes`);
+};
+
+// Relations API
+export const getPersonRelations = async (personId: number) => {
+  return api.get<PersonRelation[]>(`/person/${personId}/relations`);
+};
+
+export const createPersonRelation = async (personId: number, data: PersonRelationCreate) => {
+  return api.post<PersonRelation>(`/person/${personId}/relations`, data);
+};
+
+export const deletePersonRelation = async (personId: number, relationId: number) => {
+  return api.delete(`/person/${personId}/relations/${relationId}`);
 };
 
 export interface FamilyMember {
@@ -91,6 +113,6 @@ export interface FamilyTree {
   generations: number;
 }
 
-export const getFamilyTree = async (personId: number) => {
+export const getFamilyTree = async (personId: number | string) => {
   return api.get<FamilyTree>(`/person/${personId}/family-tree`);
 };

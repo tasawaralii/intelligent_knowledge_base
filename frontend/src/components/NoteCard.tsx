@@ -1,6 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from './ui/Card';
 import { formatDistanceToNow } from 'date-fns';
 import { Pin, PinOff, Trash2, Edit } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Note {
   id: number;
@@ -29,6 +30,9 @@ export const NoteCard = ({
   onDelete,
   onPin
 }: NoteCardProps) => {
+
+  const navigate = useNavigate();
+
   const mentionCount = (note.mentions?.persons?.length || 0) +
                       (note.mentions?.places?.length || 0) +
                       (note.mentions?.events?.length || 0);
@@ -39,7 +43,7 @@ export const NoteCard = ({
 
   return (
     <Card className={`hover:shadow-lg transition-shadow ${note.is_pinned ? 'border-yellow-300' : ''}`}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 hover:cursor-pointer" onClick={() => navigate(`/notes/${note.id}`)}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             {note.title && (
@@ -71,7 +75,7 @@ export const NoteCard = ({
                 key={`p-${idx}`}
                 className="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded"
               >
-                @p.{person.slug}
+                {person.slug}
               </span>
             ))}
             {note.mentions?.places?.slice(0, 3).map((place, idx) => (
@@ -79,7 +83,7 @@ export const NoteCard = ({
                 key={`pl-${idx}`}
                 className="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded"
               >
-                @pl.{place.slug}
+                {place.slug}
               </span>
             ))}
             {note.mentions?.events?.slice(0, 3).map((event, idx) => (
@@ -87,7 +91,7 @@ export const NoteCard = ({
                 key={`e-${idx}`}
                 className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded"
               >
-                @e.{event.slug}
+                {event.slug}
               </span>
             ))}
             {mentionCount > 3 && (

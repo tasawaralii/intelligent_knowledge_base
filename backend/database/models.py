@@ -1,8 +1,25 @@
-from sqlalchemy import Boolean, Integer, Date, String, ForeignKey, Column, DateTime, Text, Table, CHAR
+from sqlalchemy import Boolean, Integer, Date, String, ForeignKey, Column, DateTime, Text, Table, CHAR, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database.core import Base
+from enum import Enum as PyEnum
 # Facts models are imported separately to avoid circular imports
+
+
+class RelationType(PyEnum):
+    """Types of family relationships"""
+    FATHER = "father"
+    MOTHER = "mother"
+    CHILD = "child"
+    SPOUSE = "spouse"
+    SIBLING = "sibling"
+    GRANDPARENT = "grandparent"
+    GRANDCHILD = "grandchild"
+    AUNT = "aunt"
+    UNCLE = "uncle"
+    COUSIN = "cousin"
+    NIECE = "niece"
+    NEPHEW = "nephew"
 
 
 note_persons = Table(
@@ -103,7 +120,7 @@ class Persons(Base):
     father_name = Column(String(100), nullable=True)
     
     # Unique identifiers
-    slug = Column(String(100), unique=True, index=True, nullable=True)  # For @mentions like @p.john
+    slug = Column(String(100), unique=True, index=True, nullable=False)  # For @mentions like @p.john
     cnic = Column(CHAR(13), unique=True, nullable=True)
     phone_number = Column(CHAR(11), unique=True, nullable=True)
     email = Column(String(255), unique=True, nullable=True)
@@ -118,22 +135,31 @@ class Persons(Base):
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String(20), nullable=True)
 
-    # Family relationships
-    father_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
-    mother_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
-    spouse_id = Column(Integer, ForeignKey("persons.id"), nullable=True, index=True)
-
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     owner = relationship("Users", back_populates="persons")
+
+
+class PersonRelation(Base):
+    """Table for storing direct relationships between persons"""
+    __tablename__ = "person_relations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    person_id = Column(Integer, ForeignKey("persons.id", ondelete="CASCADE"), index=True)
+    related_person_id = Column(Integer, ForeignKey("persons.id", ondelete="CASCADE"), index=True)
+    relation_type = Column(String(50), nullable=False)  # father, mother, child, spouse, sibling, etc.
     
-    # Family relationships (self-referential)
-    father = relationship("Persons", remote_side=[id], foreign_keys=[father_id], backref="children_as_father")
-    mother = relationship("Persons", remote_side=[id], foreign_keys=[mother_id], backref="children_as_mother")
-    spouse = relationship("Persons", remote_side=[id], foreign_keys=[spouse_id], post_update=True)
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    person = relationship("Persons", foreign_keys=[person_id], backref="relations_from")
+    related_person = relationship("Persons", foreign_keys=[related_person_id], backref="relations_to")
 
 class PersonChanges(Base):
     __tablename__ = "person_changes"
@@ -152,7 +178,7 @@ class Places(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     name = Column(String(200), nullable=False, index=True)
-    slug = Column(String(100), unique=True, index=True, nullable=True)  # For @mentions like @pl.office
+    slug = Column(String(100), unique=True, index=True, nullable=False)  # For @mentions like @pl.office
     place_type = Column(String(50), nullable=True)  # home, office, school, etc.
     
     # Address
@@ -178,7 +204,7 @@ class Events(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     
     title = Column(String(200), nullable=False, index=True)
-    slug = Column(String(100), unique=True, index=True, nullable=True)  # For @mentions like @e.meeting
+    slug = Column(String(100), unique=True, index=True, nullable=False)  # For @mentions like @e.meeting
     event_type = Column(String(50), nullable=True)  # meeting, incident, ceremony
     
     # Time

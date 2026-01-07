@@ -8,7 +8,7 @@ from typing import List, Dict, Set, Tuple, Optional
 from sqlalchemy.orm import Session
 from collections import defaultdict, deque
 from database import models
-from database.facts import Facts, FactEvidence, RelationType
+from database.facts import Facts, RelationType
 from datetime import datetime
 import re
 

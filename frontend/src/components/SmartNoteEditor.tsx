@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { SuggestionIndex } from '../utils/suggestionSearch';
 
 interface AutocompleteOption {
   id: string;
   name: string;
   type: 'person' | 'place' | 'event';
+  slug: string;
   description?: string;
 }
 
@@ -29,77 +30,87 @@ export const SmartNoteEditor = ({
   const [filteredSuggestions, setFilteredSuggestions] = useState<AutocompleteOption[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [currentMentionType, setCurrentMentionType] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [isNewMention, setIsNewMention] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
 
+  const trie = useMemo(() => new SuggestionIndex(suggestions), [suggestions]);
   useEffect(() => {
-    // Detect mention trigger
-    const text = value.substring(0, cursorPosition);
-    const lastAtIndex = text.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      const afterAt = text.substring(lastAtIndex + 1);
-      
-      // Check for mention types: @p (person), @pl (place), @e (event)
-      if (afterAt.startsWith('p.') || afterAt.startsWith('p ')) {
-        setCurrentMentionType('person');
-        setSearchTerm(afterAt.substring(2).trim());
-        const filtered = suggestions.filter(s => 
-          s.type === 'person' && s.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredSuggestions(filtered);
-        setShowSuggestions(filtered.length > 0);
-      } else if (afterAt.startsWith('pl.') || afterAt.startsWith('pl ')) {
-        setCurrentMentionType('place');
-        setSearchTerm(afterAt.substring(3).trim());
-        const filtered = suggestions.filter(s => 
-          s.type === 'place' && s.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredSuggestions(filtered);
-        setShowSuggestions(filtered.length > 0);
-      } else if (afterAt.startsWith('e.') || afterAt.startsWith('e ')) {
-        setCurrentMentionType('event');
-        setSearchTerm(afterAt.substring(2).trim());
-        const filtered = suggestions.filter(s => 
-          s.type === 'event' && s.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredSuggestions(filtered);
-        setShowSuggestions(filtered.length > 0);
-      } else if (afterAt === '' || afterAt.match(/^[a-z]*/i)) {
-        setCurrentMentionType(null);
-        setShowSuggestions(false);
-      }
-      setSuggestionIndex(0);
-    } else {
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex === -1) {
       setShowSuggestions(false);
       setCurrentMentionType(null);
+      return;
     }
-  }, [cursorPosition, value, suggestions, searchTerm]);
+
+    const afterAt = textBeforeCursor.slice(lastAtIndex + 1);
+
+    const match = afterAt.match(/^(n\.)?(p|pl|e)\.([a-z0-9-]*)$/i);
+
+    if (!match) {
+      setShowSuggestions(false);
+      setCurrentMentionType(null);
+      setIsNewMention(false);
+      return;
+    }
+
+    setIsNewMention(Boolean(match[1]));
+    
+    const entityCode = match[2];
+    const search = match[3].toLowerCase();
+
+    const type =
+      entityCode === 'p'
+        ? 'person'
+        : entityCode === 'pl'
+          ? 'place'
+          : 'event';
+
+    setCurrentMentionType(type);
+
+    const filtered = trie.searchPrefix(search, type as 'person' | 'place' | 'event');
+
+    setFilteredSuggestions(filtered);
+    setShowSuggestions(filtered.length > 0);
+    setHighlightIndex(0);
+  }, [value, cursorPosition, trie]);  
 
   const handleSelectSuggestion = (option: AutocompleteOption) => {
-    const text = value.substring(0, cursorPosition);
-    const lastAtIndex = text.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      const before = value.substring(0, lastAtIndex);
-      const after = value.substring(cursorPosition);
-      
-      const mentionPrefix = currentMentionType === 'person' ? '@p.' : 
-                           currentMentionType === 'place' ? '@pl.' : '@e.';
-      const newValue = `${before}${mentionPrefix}${option.name}${after}`;
-      
-      onChange(newValue);
-      setShowSuggestions(false);
-      
-      // Call the callback with detected mentions
-      if (onMentionDetected) {
-        const allMentions = extractMentions(newValue);
-        onMentionDetected(allMentions);
-      }
-    }
+    const textBeforeCursor = value.slice(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex === -1) return;
+
+    const before = value.slice(0, lastAtIndex);
+    const after = value.slice(cursorPosition);
+
+    const prefix =
+      `${isNewMention ? '@n.' : '@'}` +
+      (currentMentionType === 'person'
+        ? 'p.'
+        : currentMentionType === 'place'
+          ? 'pl.'
+          : 'e.');
+
+    const mentionText = `${prefix}${option.slug}`;
+    const newValue = `${before}${mentionText}${after}`;
+
+    onChange(newValue);
+    setShowSuggestions(false);
+
+    requestAnimationFrame(() => {
+      textareaRef.current?.setSelectionRange(
+        before.length + mentionText.length,
+        before.length + mentionText.length
+      );
+    });
+
+    onMentionDetected?.(extractMentions(newValue));
   };
+  
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!showSuggestions) return;
@@ -107,20 +118,20 @@ export const SmartNoteEditor = ({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSuggestionIndex(prev => 
+        setHighlightIndex(prev => 
           (prev + 1) % filteredSuggestions.length
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSuggestionIndex(prev => 
+        setHighlightIndex(prev => 
           prev === 0 ? filteredSuggestions.length - 1 : prev - 1
         );
         break;
       case 'Enter':
         e.preventDefault();
-        if (filteredSuggestions[suggestionIndex]) {
-          handleSelectSuggestion(filteredSuggestions[suggestionIndex]);
+        if (filteredSuggestions[highlightIndex]) {
+          handleSelectSuggestion(filteredSuggestions[highlightIndex]);
         }
         break;
       case 'Escape':
@@ -167,7 +178,7 @@ export const SmartNoteEditor = ({
                 key={option.id}
                 onClick={() => handleSelectSuggestion(option)}
                 className={`px-4 py-2.5 cursor-pointer border-b last:border-b-0 ${
-                  index === suggestionIndex
+                  index === highlightIndex
                     ? 'bg-blue-100 text-blue-900'
                     : 'hover:bg-gray-100 text-gray-900'
                 }`}
@@ -205,19 +216,26 @@ function extractMentions(content: string) {
     events: [] as { slug: string; type: string; new: boolean }[]
   };
 
-  const personMatches = content.matchAll(/@p\.(\w+)/g);
-  const placeMatches = content.matchAll(/@pl\.(\w+)/g);
-  const eventMatches = content.matchAll(/@e\.(\w+)/g);
+  const regex = /@(?:(n)\.)?(p|pl|e)\.([a-z0-9-]+)/gi;
 
-  for (const match of personMatches) {
-    mentions.persons.push({ slug: match[1], type: 'person', new: false });
-  }
-  for (const match of placeMatches) {
-    mentions.places.push({ slug: match[1], type: 'place', new: false });
-  }
-  for (const match of eventMatches) {
-    mentions.events.push({ slug: match[1], type: 'event', new: false });
+  for (const match of content.matchAll(regex)) {
+    const isNew = Boolean(match[1]);
+    const code = match[2];
+    const slug = match[3];
+
+    const entry = { slug, type: '', new: isNew };
+
+    if (code === 'p') {
+      entry.type = 'person';
+      mentions.persons.push(entry);
+    } else if (code === 'pl') {
+      entry.type = 'place';
+      mentions.places.push(entry);
+    } else {
+      entry.type = 'event';
+      mentions.events.push(entry);
+    }
   }
 
   return mentions;
-}
+} 

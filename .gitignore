@@ -48,4 +48,8 @@ backend/htmlcov/
 # Logs
 *.log
 
+
+
 report/
+!README.md
+*.md

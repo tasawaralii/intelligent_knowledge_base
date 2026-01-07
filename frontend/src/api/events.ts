@@ -3,20 +3,24 @@ import api from './api';
 export interface Event {
   id: number;
   title: string;
+  slug: string;
   description?: string;
   start_datetime: string;
   end_datetime?: string;
   location?: string;
+  place_id?: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface EventCreate {
   title: string;
+  slug?: string;
   description?: string;
   start_datetime: string;
   end_datetime?: string;
   location?: string;
+  place_id?: number;
 }
 
 export const getEvents = async (skip = 0, limit = 100) => {
@@ -25,8 +29,8 @@ export const getEvents = async (skip = 0, limit = 100) => {
   });
 };
 
-export const getEvent = async (eventId: number) => {
-  return api.get<Event>(`/event/${eventId}`);
+export const getEvent = async (eventSlug: string) => {
+  return api.get<Event>(`/event/${eventSlug}`);
 };
 
 export const createEvent = async (data: EventCreate) => {

@@ -510,3 +510,29 @@ def get_fact(
     
     return fact_details
 
+
+@router.delete("/facts/{fact_id}")
+def delete_fact(
+    fact_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Users = Depends(get_current_user)
+):
+    """
+    Delete a specific fact by ID
+    
+    Returns:
+        Success message
+    """
+    fact = db.query(Facts).filter(
+        Facts.id == fact_id,
+        Facts.user_id == current_user.id
+    ).first()
+    
+    if not fact:
+        raise HTTPException(status_code=404, detail="Fact not found")
+    
+    db.delete(fact)
+    db.commit()
+    
+    return {"message": "Fact deleted successfully"}
+

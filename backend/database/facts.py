@@ -107,24 +107,3 @@ class NoteFact(Base):
     # Relationships
     note = relationship("Notes", back_populates="note_facts")
     fact = relationship("Facts", back_populates="note_facts")
-
-
-class FactEvidence(Base):
-    """
-    Evidence table - links facts to the notes that support them
-    Tracks which notes contain evidence for each fact
-    """
-    __tablename__ = "fact_evidence"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    fact_id = Column(Integer, ForeignKey("facts.id", ondelete="CASCADE"), index=True)
-    note_id = Column(Integer, ForeignKey("notes.id", ondelete="CASCADE"), index=True)
-    
-    # Context from the note
-    context_text = Column(Text, nullable=True)  # The relevant sentence/section from note
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    fact = relationship("Facts", foreign_keys=[fact_id])
-    note = relationship("Notes", foreign_keys=[note_id])

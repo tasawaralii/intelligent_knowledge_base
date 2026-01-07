@@ -3,7 +3,7 @@ import api from './api';
 export interface Place {
   id: number;
   name: string;
-  slug?: string;
+  slug: string;
   place_type?: string;
   address?: string;
   city?: string;
@@ -29,8 +29,8 @@ export const getPlaces = async (skip = 0, limit = 100) => {
   });
 };
 
-export const getPlace = async (placeId: number) => {
-  return api.get<Place>(`/place/${placeId}`);
+export const getPlace = async (placeSlug: string) => {
+  return api.get<Place>(`/place/${placeSlug}`);
 };
 
 export const createPlace = async (data: PlaceCreate) => {

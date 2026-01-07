@@ -27,8 +27,8 @@ const CollapsibleSidebar: React.FC<SidebarProps> = ({ className }) => {
     { icon: Calendar1, label: 'Events', slug: '/events' },
     { icon: Link2, label: 'Relations', slug: '/relations' },
     { icon: Lightbulb, label: 'Facts', slug: '/facts' },
-    { icon: Archive, label: 'Archive', slug: '/archive' },
-    { icon: Trash, label: 'Bin', slug: '/bin' },
+    // { icon: Archive, label: 'Archive', slug: '/archive' },
+    // { icon: Trash, label: 'Bin', slug: '/bin' },
   ]
 
   const userActions = [

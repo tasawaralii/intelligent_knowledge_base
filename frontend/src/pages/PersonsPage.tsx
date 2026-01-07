@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit, Mail, Phone, MapPin, User, GitBranch } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog } from '../components/ui/Dialog';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader } from '../components/ui/Card';
 import { InputField, SelectField } from '../components/FormFields';
-import { getPersons, createPerson, updatePerson, deletePerson, getFamilyTree, type Person, type PersonCreate, type FamilyTree } from '../api/persons';
-import { FamilyTreeViewer } from '../components/FamilyTreeViewer';
+import { getPersons, createPerson, updatePerson, deletePerson, type Person, type PersonCreate } from '../api/persons';
+import { useAlert } from '../context/alertContext';
 
 export const PersonsPage = () => {
+
+  const { addAlert } = useAlert();
+  const navigate = useNavigate();
+
   const [persons, setPersons] = useState<Person[]>([]);
   const [filteredPersons, setFilteredPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,9 +20,6 @@ export const PersonsPage = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showFamilyTree, setShowFamilyTree] = useState(false);
-  const [familyTree, setFamilyTree] = useState<FamilyTree | null>(null);
-  const [loadingFamilyTree, setLoadingFamilyTree] = useState(false);
 
   const [formData, setFormData] = useState<PersonCreate>({
     first_name: '',
@@ -31,9 +33,6 @@ export const PersonsPage = () => {
     date_of_birth: '',
     gender: '',
     cnic: '',
-    father_id: undefined,
-    mother_id: undefined,
-    spouse_id: undefined
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,17 +79,35 @@ export const PersonsPage = () => {
 
     try {
       setIsSubmitting(true);
+      // Convert empty strings to null for optional fields
+      const dataToSend = {
+        ...formData,
+        last_name: formData.last_name || null,
+        father_name: formData.father_name || null,
+        email: formData.email || null,
+        phone_number: formData.phone_number || null,
+        address: formData.address || null,
+        city: formData.city || null,
+        country: formData.country || null,
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        cnic: formData.cnic || null,
+      };
+      
       if (editingPerson) {
-        const res = await updatePerson(editingPerson.id, formData);
+        const res = await updatePerson(editingPerson.id, dataToSend as PersonCreate);
         setPersons(persons.map(p => p.id === editingPerson.id ? res.data : p));
+        addAlert('Person updated successfully', 'success', 2000);
       } else {
-        const res = await createPerson(formData);
+        const res = await createPerson(dataToSend as PersonCreate);
         setPersons([res.data, ...persons]);
+        addAlert('Person created successfully', 'success', 2000);
       }
       setShowDialog(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save person:', error);
+      addAlert(error?.response?.data?.detail || 'Failed to save person', 'error', 3000);
     } finally {
       setIsSubmitting(false);
     }
@@ -103,6 +120,7 @@ export const PersonsPage = () => {
         setPersons(persons.filter(p => p.id !== personId));
       } catch (error) {
         console.error('Failed to delete person:', error);
+        addAlert(error.response.data.detail || "Error in Deleting" , "error", 3000)
       }
     }
   };
@@ -121,9 +139,6 @@ export const PersonsPage = () => {
       date_of_birth: person.date_of_birth || '',
       gender: person.gender || '',
       cnic: person.cnic || '',
-      father_id: person.father_id,
-      mother_id: person.mother_id,
-      spouse_id: person.spouse_id
     });
     setShowDialog(true);
   };
@@ -134,18 +149,12 @@ export const PersonsPage = () => {
     setShowDialog(true);
   };
 
-  const handleViewFamilyTree = async (personId: number) => {
-    try {
-      setLoadingFamilyTree(true);
-      const res = await getFamilyTree(personId);
-      setFamilyTree(res.data);
-      setShowFamilyTree(true);
-    } catch (error) {
-      console.error('Failed to load family tree:', error);
-      alert('Failed to load family tree. Please try again.');
-    } finally {
-      setLoadingFamilyTree(false);
-    }
+  const handleViewPerson = (slug: string) => {
+    navigate(`/persons/${slug}`);
+  };
+
+  const handleViewFamilyTree = (personId: number) => {
+    navigate(`/family-tree/${personId}`);
   };
 
   const resetForm = () => {
@@ -161,9 +170,6 @@ export const PersonsPage = () => {
       date_of_birth: '',
       gender: '',
       cnic: '',
-      father_id: undefined,
-      mother_id: undefined,
-      spouse_id: undefined
     });
     setErrors({});
   };
@@ -181,30 +187,6 @@ export const PersonsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Family Tree View */}
-      {showFamilyTree && familyTree && (
-        <Dialog
-          isOpen={showFamilyTree}
-          onClose={() => setShowFamilyTree(false)}
-          title="Family Tree"
-          description="Interactive family tree visualization"
-          size="xl"
-        >
-          <div className="max-h-[70vh] overflow-y-auto">
-            <FamilyTreeViewer 
-              familyTree={familyTree}
-              onPersonClick={(id) => {
-                const person = persons.find(p => p.id === id);
-                if (person) {
-                  setShowFamilyTree(false);
-                  handleEdit(person);
-                }
-              }}
-            />
-          </div>
-        </Dialog>
-      )}
-
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -248,7 +230,11 @@ export const PersonsPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPersons.map(person => (
-              <Card key={person.id} className="hover:shadow-lg transition-shadow">
+              <Card
+                key={person.id}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleViewPerson(person.slug)}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
@@ -313,30 +299,14 @@ export const PersonsPage = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => handleViewFamilyTree(person.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewFamilyTree(person.id);
+                    }}
                     className="flex-1"
-                    disabled={loadingFamilyTree}
                   >
                     <GitBranch className="w-4 h-4" />
                     Family Tree
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleEdit(person)}
-                    className="flex-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDelete(person.id)}
-                    className="flex-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
                   </Button>
                 </div>
               </Card>
@@ -444,47 +414,6 @@ export const PersonsPage = () => {
               value={formData.country || ''}
               onChange={(val) => setFormData({ ...formData, country: val })}
             />
-          </div>
-
-          {/* Family Relationships Section */}
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="text-md font-semibold text-gray-900 mb-3">Family Relationships</h3>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <SelectField
-                label="Father"
-                value={formData.father_id?.toString() || ''}
-                onChange={(val) => setFormData({ ...formData, father_id: val ? parseInt(val) : undefined })}
-                options={[
-                  { value: '', label: 'None' },
-                  ...persons
-                    .filter(p => p.gender === 'male' && (!editingPerson || p.id !== editingPerson.id))
-                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
-                ]}
-              />
-              <SelectField
-                label="Mother"
-                value={formData.mother_id?.toString() || ''}
-                onChange={(val) => setFormData({ ...formData, mother_id: val ? parseInt(val) : undefined })}
-                options={[
-                  { value: '', label: 'None' },
-                  ...persons
-                    .filter(p => p.gender === 'female' && (!editingPerson || p.id !== editingPerson.id))
-                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
-                ]}
-              />
-              <SelectField
-                label="Spouse"
-                value={formData.spouse_id?.toString() || ''}
-                onChange={(val) => setFormData({ ...formData, spouse_id: val ? parseInt(val) : undefined })}
-                options={[
-                  { value: '', label: 'None' },
-                  ...persons
-                    .filter(p => !editingPerson || p.id !== editingPerson.id)
-                    .map(p => ({ value: p.id.toString(), label: `${p.first_name} ${p.last_name || ''}` }))
-                ]}
-              />
-            </div>
           </div>
 
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">

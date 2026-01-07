@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from typing import List, Tuple, Optional
-from .models import Persons, PersonChanges
+from .models import Persons, PersonChanges, PersonRelation
 from schemas import PersonCreate, PersonRead, PersonUpdate, PersonChange, FamilyMember, FamilyTreeNode, FamilyTree
 
 
@@ -20,9 +21,6 @@ def _convert_person(person: Persons) -> PersonRead:
         date_of_birth=person.date_of_birth,
         gender=person.gender,
         picture_url=person.picture_url,
-        father_id=person.father_id,
-        mother_id=person.mother_id,
-        spouse_id=person.spouse_id,
         created_at=person.created_at,
         updated_at=person.updated_at,
     )
@@ -43,9 +41,6 @@ def add_person(user_id: int, person: PersonCreate, db: Session) -> PersonRead:
         date_of_birth=person.date_of_birth,
         gender=person.gender,
         picture_url=person.picture_url,
-        father_id=person.father_id,
-        mother_id=person.mother_id,
-        spouse_id=person.spouse_id,
     )
 
     db.add(new_person)
@@ -154,7 +149,15 @@ def _person_to_family_member(person: Persons) -> FamilyMember:
 
 
 def get_family_tree(user_id: int, person_id: int, db: Session) -> Optional[FamilyTree]:
-    # \"\"\"Get family tree for a person including ancestors and descendants\"\"\"
+    """
+    Get family tree for a person using relations table.
+    
+    Handles bidirectional relations:
+    - father/mother: person → related_person means "my father/mother is X"
+    - child: person → related_person means "my child is X" (inverse of father/mother)
+    - spouse: bidirectional (A spouse B = B spouse A)
+    - sibling: bidirectional (A sibling B = B sibling A)
+    """
     root_person = db.query(Persons).filter(
         Persons.id == person_id,
         Persons.user_id == user_id
@@ -163,7 +166,126 @@ def get_family_tree(user_id: int, person_id: int, db: Session) -> Optional[Famil
     if not root_person:
         return None
     
-    # Collect all family members
+    def get_father(person: Persons) -> Optional[Persons]:
+        """Get father: either via 'father' relation or reverse 'child' from male"""
+        # Direct: person's father is X
+        rel = db.query(PersonRelation).filter(
+            PersonRelation.person_id == person.id,
+            PersonRelation.relation_type == "father",
+            PersonRelation.user_id == user_id
+        ).first()
+        if rel:
+            return rel.related_person
+        return None
+    
+    def get_mother(person: Persons) -> Optional[Persons]:
+        """Get mother: via 'mother' relation"""
+        rel = db.query(PersonRelation).filter(
+            PersonRelation.person_id == person.id,
+            PersonRelation.relation_type == "mother",
+            PersonRelation.user_id == user_id
+        ).first()
+        if rel:
+            return rel.related_person
+        return None
+    
+    def get_spouse(person: Persons) -> Optional[Persons]:
+        """Get spouse: check both directions"""
+        # Direct
+        rel = db.query(PersonRelation).filter(
+            PersonRelation.person_id == person.id,
+            PersonRelation.relation_type == "spouse",
+            PersonRelation.user_id == user_id
+        ).first()
+        if rel:
+            return rel.related_person
+        # Reverse
+        rel = db.query(PersonRelation).filter(
+            PersonRelation.related_person_id == person.id,
+            PersonRelation.relation_type == "spouse",
+            PersonRelation.user_id == user_id
+        ).first()
+        if rel:
+            return rel.person
+        return None
+    
+    def get_children(person: Persons) -> list[Persons]:
+        """Get children: via 'child' relation OR reverse 'father'/'mother' relations"""
+        children_ids = set()
+        children_list = []
+        
+        # Direct: person's child is X
+        child_rels = db.query(PersonRelation).filter(
+            PersonRelation.person_id == person.id,
+            PersonRelation.relation_type == "child",
+            PersonRelation.user_id == user_id
+        ).all()
+        for rel in child_rels:
+            if rel.related_person_id not in children_ids:
+                children_ids.add(rel.related_person_id)
+                children_list.append(rel.related_person)
+        
+        # Reverse: X's father/mother is person
+        parent_rels = db.query(PersonRelation).filter(
+            PersonRelation.related_person_id == person.id,
+            PersonRelation.relation_type.in_(["father", "mother"]),
+            PersonRelation.user_id == user_id
+        ).all()
+        for rel in parent_rels:
+            if rel.person_id not in children_ids:
+                children_ids.add(rel.person_id)
+                children_list.append(rel.person)
+        
+        return children_list
+    
+    def get_siblings(person: Persons) -> list[Persons]:
+        """Get siblings: direct sibling relations + same parents"""
+        sibling_ids = set()
+        siblings_list = []
+        
+        # Direct sibling relations (both directions)
+        direct_rels = db.query(PersonRelation).filter(
+            PersonRelation.person_id == person.id,
+            PersonRelation.relation_type == "sibling",
+            PersonRelation.user_id == user_id
+        ).all()
+        for rel in direct_rels:
+            if rel.related_person_id not in sibling_ids and rel.related_person_id != person.id:
+                sibling_ids.add(rel.related_person_id)
+                siblings_list.append(rel.related_person)
+        
+        reverse_rels = db.query(PersonRelation).filter(
+            PersonRelation.related_person_id == person.id,
+            PersonRelation.relation_type == "sibling",
+            PersonRelation.user_id == user_id
+        ).all()
+        for rel in reverse_rels:
+            if rel.person_id not in sibling_ids and rel.person_id != person.id:
+                sibling_ids.add(rel.person_id)
+                siblings_list.append(rel.person)
+        
+        # Also find siblings via shared parents
+        father = get_father(person)
+        mother = get_mother(person)
+        
+        if father:
+            # Others who have same father
+            father_children = get_children(father)
+            for child in father_children:
+                if child.id not in sibling_ids and child.id != person.id:
+                    sibling_ids.add(child.id)
+                    siblings_list.append(child)
+        
+        if mother:
+            # Others who have same mother
+            mother_children = get_children(mother)
+            for child in mother_children:
+                if child.id not in sibling_ids and child.id != person.id:
+                    sibling_ids.add(child.id)
+                    siblings_list.append(child)
+        
+        return siblings_list
+    
     visited = set()
     nodes = []
     max_generations = 0
@@ -173,27 +295,13 @@ def get_family_tree(user_id: int, person_id: int, db: Session) -> Optional[Famil
         if person.id in visited:
             return
         visited.add(person.id)
-        max_generations = max(max_generations, generation)
+        max_generations = max(max_generations, abs(generation))
         
-        # Get relationships
-        father = db.query(Persons).filter(Persons.id == person.father_id).first() if person.father_id else None
-        mother = db.query(Persons).filter(Persons.id == person.mother_id).first() if person.mother_id else None
-        spouse = db.query(Persons).filter(Persons.id == person.spouse_id).first() if person.spouse_id else None
-        
-        # Get children (where this person is father or mother)
-        children = db.query(Persons).filter(
-            (Persons.father_id == person.id) | (Persons.mother_id == person.id),
-            Persons.user_id == user_id
-        ).all()
-        
-        # Get siblings (same parents)
-        siblings = []
-        if person.father_id or person.mother_id:
-            siblings = db.query(Persons).filter(
-                ((Persons.father_id == person.father_id) | (Persons.mother_id == person.mother_id)),
-                Persons.id != person.id,
-                Persons.user_id == user_id
-            ).all()
+        father = get_father(person)
+        mother = get_mother(person)
+        spouse = get_spouse(person)
+        children = get_children(person)
+        siblings = get_siblings(person)
         
         # Create node
         node = FamilyTreeNode(
@@ -215,6 +323,8 @@ def get_family_tree(user_id: int, person_id: int, db: Session) -> Optional[Famil
             process_person(spouse, generation)
         for child in children:
             process_person(child, generation - 1)
+        for sibling in siblings:
+            process_person(sibling, generation)
     
     process_person(root_person)
     

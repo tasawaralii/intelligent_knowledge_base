@@ -5,7 +5,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import database.models as models
-from database.facts import Facts, FactEvidence
+from database.facts import Facts
 from database.core import engine
 from routers.auth import router as auth_router
 from routers.me import router as me_router
